@@ -30,10 +30,14 @@ head(obesity_SA)
 tail(obesity_SA)
 
 # Do train/test split
+#Creating a interaction term to stratify smaple smoking and SCC
+obesity_SA$SamplingTerm <- interaction(obesity_SA$SMOKE,obesity_SA$SCC)
+
 set.seed(10, sample.kind = "Rejection")
-idx <- createDataPartition(obesity_SA$obese_ind, p = 0.7, list = FALSE)
-train <- obesity_SA[idx,1:8]
-test <- obesity_SA[-idx,1:8]
+idx <- createDataPartition(obesity_SA$SamplingTerm, p = 0.7, list = FALSE)
+idx
+train <- obesity_SA[idx,1:18]
+test <- obesity_SA[-idx,1:18]
 
 #Comparing some summary stats across the data sets
 summary(train)
