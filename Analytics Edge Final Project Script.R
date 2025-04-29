@@ -177,6 +177,10 @@ AUC_naive
 
 
 
+
+
+                        
+
 ##Threshold discussion:
 #Estimates for the lifetime cost of obesity in the US range from $2-3K per year (https://www.cdc.gov/obesity/adult-obesity-facts/index.html) with a lifetime cost of $92,235 (https://www.brookings.edu/wp-content/uploads/2015/05/0512-obesity-presentation-v6-rm.pdf)
 #One potential treatment is bariatric surgery, which is roughly 72% effective (https://pmc.ncbi.nlm.nih.gov/articles/PMC5112115/) at helping patients lose weight, but can cost $25K
@@ -194,6 +198,39 @@ log_model_low_thresh_preds = predict(log_model_3, newdata=test, type='response')
 log_model_low_thresh_preds = ifelse(log_model_low_thresh_preds > 0.218, 1, 0)
 confusionMatrix(as.factor(log_model_low_thresh_preds), as.factor(test$obese_ind))                        
 
+##Feature Engineering
+train$FAF2 = train$FAF*train$FAF
+test$FAF2 = test$FAF*test$FAF
+
+train$CH2O2 = train$CH2O*train$CH2O
+test$CH2O2 = test$CH2O*test$CH2O
+
+log_model_FE = glm(data = train, obese_ind ~ family_history_with_overweight + FAVC + FCVC + CAEC+ SMOKE +CH2O + SCC + FAF +TUE +MTRANS +FAF2 +CH2O2, family="binomial")
+summary(log_model_FE)
+
+log_model_FE_preds = predict(log_model_FE, newdata=test, type='response')
+log_model_FE_preds = ifelse(log_model_FE_preds > 0.5, 1, 0)
+
+log_model_FE_cm <- confusionMatrix(as.factor(log_model_FE_preds), as.factor(test$obese_ind))
+log_model_FE_cm
+
+log_model_FE2 = glm(data = train, obese_ind ~ family_history_with_overweight + FAVC + FCVC + CAEC+ SMOKE +CH2O + SCC + FAF +TUE +MTRANS +CH2O2, family="binomial")
+summary(log_model_FE2)
+
+log_model_FE2_preds = predict(log_model_FE2, newdata=test, type='response')
+log_model_FE2_preds = ifelse(log_model_FE2_preds > 0.5, 1, 0)
+
+log_model_FE2_cm <- confusionMatrix(as.factor(log_model_FE2_preds), as.factor(test$obese_ind))
+log_model_FE2_cm
+
+
+
+
+
+
+
+
+                        
 ### Boosted Tree Models: Gradient Boosted and XGBoost
 
 
