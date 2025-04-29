@@ -134,9 +134,9 @@ confusionMatrix(as.factor(log_model_3_preds), as.factor(test$obese_ind))
 
 
 # Preparing data for Boosted Tree models
-x.train=model.matrix(obese_ind~.-1,data=train) 
+x.train=model.matrix(obese_ind~. -NObeyesdad -Weight -Height -Age -Gender -FAF -1,data=train) # -Weight -Height -Age -Gender -FAF
 y.train=train$obese_ind
-x.test=model.matrix(obese_ind~.-1,data=test) 
+x.test=model.matrix(obese_ind~. -NObeyesdad -Weight -Height -Age -Gender -FAF -1,data=test) 
 y.test=test$obese_ind
 
 # Code to calculate R^2 and OSR^2
@@ -165,22 +165,22 @@ gbm.grid = expand.grid(n.trees = seq(5, 10, 15),
                        shrinkage = seq(0.1, 0.3, 0.1))
 
 # Cross validation
-gbm.cv = train(y = train$obese_ind,
-               x = subset(train, select=-c(NObeyesdad, Weight, Height, Age, FAF)),
-               method = "gbm",
-               trControl = trainControl(method="cv", number=5),
-               tuneGrid=gbm.grid,
-               verbose=0)
-
-# gbm.cv = train(y = y.train,
-#                x = x.train,
+# gbm.cv = train(y = train$obese_ind,
+#                x = subset(train, select=-c(NObeyesdad, Weight, Height, Age, Gender, FAF)),
 #                method = "gbm",
 #                trControl = trainControl(method="cv", number=5),
 #                tuneGrid=gbm.grid,
 #                verbose=0)
 
+gbm.cv = train(y = y.train,
+               x = x.train,
+               method = "gbm",
+               trControl = trainControl(method="cv", number=5),
+               tuneGrid=gbm.grid,
+               verbose=0)
+
 # making predictions
-gbm.pred = predict(gbm.cv, newdata = test, type="prob")
+gbm.pred = predict(gbm.cv, newdata = x.test, type="prob")
 gbm.pred <- gbm.pred[, 2] # take the second column. The first column contains the probability of "0" while the second column is the probability of "1".
 
 head(gbm.pred)
@@ -222,8 +222,8 @@ xgb.cv$finalModel
 xgb.val.preds = as.numeric(predict(xgb.cv, newdata = x.train))
 xgb.test.preds = as.numeric(predict(xgb.cv, newdata = x.test))
 
-print(xgb.val.preds)
-print(xgb.test.preds)
+# print(xgb.val.preds)
+# print(xgb.test.preds)
 
 xgb.r2 = calculate_r2(xgb.val.preds)
 xgb.osr2 = calculate_osr2(xgb.test.preds)
@@ -232,7 +232,7 @@ print(paste('R^2: ', xgb.r2))
 print(paste('OSR^2: ', xgb.osr2))
 
 
-xgb.pred = predict(gbm.cv, newdata = test, type="prob")
+xgb.pred = predict(xgb.cv, newdata = x.test, type='prob')
 head(xgb.pred)
 dim(xgb.pred)
 xgb.pred <- xgb.pred[, 2] # take the second column. The first column contains the probability of "0" while the second column is the probability of "1".
