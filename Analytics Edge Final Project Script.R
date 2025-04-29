@@ -109,6 +109,14 @@ summary(log_model_2)
 
 log_model_3 = glm(data = train, obese_ind ~ family_history_with_overweight + FAVC + FCVC + CAEC+ SMOKE +CH2O + SCC + FAF +TUE +MTRANS, family="binomial")
 summary(log_model_3)
+#Removing FAF
+log_model_4 = glm(data = train, obese_ind ~ family_history_with_overweight + FAVC + FCVC + CAEC+ SMOKE + SCC +TUE +MTRANS, family="binomial")
+summary(log_model_4)
+#Baseline model with all variables and tons of multi-collinearity
+log_model_naive = glm(data = train, obese_ind ~ . - NObeyesdad, family="binomial")
+summary(log_model_naive)
+                        
+                        
 
 log_model_preds = predict(log_model, newdata=test, type='response')
 log_model_preds = ifelse(log_model_preds > 0.5, 1, 0)
@@ -119,15 +127,72 @@ log_model_2_preds = ifelse(log_model_2_preds > 0.5, 1, 0)
 log_model_3_preds = predict(log_model_3, newdata=test, type='response')
 log_model_3_preds = ifelse(log_model_3_preds > 0.5, 1, 0)
 
+log_model_4_preds = predict(log_model_4, newdata=test, type='response')
+log_model_4_preds = ifelse(log_model_4_preds > 0.5, 1, 0)
+
+log_model_naive_preds = predict(log_model_naive, newdata=test, type='response')
+log_model_naive_preds = ifelse(log_model_naive_preds > 0.5, 1, 0)
+
+##Log_Model_3 removes insignificant variables and still maintains similar AUC                         
 
 # all three yield same confusion matrix
 # seem slightly worse than log.model above 
 confusionMatrix(as.factor(log_model_preds), as.factor(test$obese_ind))
 confusionMatrix(as.factor(log_model_2_preds), as.factor(test$obese_ind))
 confusionMatrix(as.factor(log_model_3_preds), as.factor(test$obese_ind))
+confusionMatrix(as.factor(log_model_4_preds), as.factor(test$obese_ind))
+confusionMatrix(as.factor(log_model_naive_preds), as.factor(test$obese_ind))                        
+
+
+##ROC and AUC
+#Create the prediction object
+rocr.pred <- prediction(log_model_preds, test$obese_ind)
+rocr.pred_2 <- prediction(log_model_2_preds, test$obese_ind)
+rocr.pred_3 <- prediction(log_model_3_preds, test$obese_ind)
+rocr.pred_4 <- prediction(log_model_4_preds, test$obese_ind)
+rocr.pred.naive <- prediction(log_model_naive_preds, test$obese_ind)
+
+# Plot the ROC curve
+plot(performance(rocr.pred, "tpr", "fpr"))
+plot(performance(rocr.pred_2, "tpr", "fpr"))
+plot(performance(rocr.pred_3, "tpr", "fpr"))
+plot(performance(rocr.pred_4, "tpr", "fpr"))
+plot(performance(rocr.pred.naive, "tpr", "fpr"))
+
+##AUC Values
+AUC <- as.numeric(performance(rocr.pred, "auc")@y.values)
+AUC
+
+AUC_2 <- as.numeric(performance(rocr.pred_2, "auc")@y.values)
+AUC_2
+
+AUC_3 <- as.numeric(performance(rocr.pred_3, "auc")@y.values)
+AUC_3
+
+AUC_4 <- as.numeric(performance(rocr.pred_4, "auc")@y.values)
+AUC_4
+
+AUC_naive <- as.numeric(performance(rocr.pred.naive, "auc")@y.values)
+AUC_naive
 
 
 
+##Threshold discussion:
+#Estimates for the lifetime cost of obesity in the US range from $2-3K per year (https://www.cdc.gov/obesity/adult-obesity-facts/index.html) with a lifetime cost of $92,235 (https://www.brookings.edu/wp-content/uploads/2015/05/0512-obesity-presentation-v6-rm.pdf)
+#One potential treatment is bariatric surgery, which is roughly 72% effective (https://pmc.ncbi.nlm.nih.gov/articles/PMC5112115/) at helping patients lose weight, but can cost $25K
+#From a preventative perspective, a simulated study found that a ten year intervention plan for children would cost ~$119 per person and reduced the proportion of the population with obesity by ~2% (https://pmc.ncbi.nlm.nih.gov/articles/PMC5654390/)
+
+#Information is limited on how these costs evolve on a per person basis in Latin America, but we can use their relative magnitudes to identify a better probability threshold.
+#For the purpose of simplicity, we'll assume with probability p a person will pay the $92K in excess medical costs
+#With successful intervention at a cost of $4K, we'll assume that p will reduce by 20%
+
+#This gives us an equation for threshold p -> 92235*p = $4K*(1-0.8p)+96235*0.8p -> p=0.218
+
+#Confusion Matrix for p=.218 (using log_model_3)
+#Accuracy decreases slightly, but FN decrease significantly!
+log_model_low_thresh_preds = predict(log_model_3, newdata=test, type='response')
+log_model_low_thresh_preds = ifelse(log_model_low_thresh_preds > 0.218, 1, 0)
+confusionMatrix(as.factor(log_model_low_thresh_preds), as.factor(test$obese_ind))                        
 
 ### Boosted Tree Models: Gradient Boosted and XGBoost
 
